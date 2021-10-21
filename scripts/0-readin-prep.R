@@ -56,13 +56,57 @@ df <- data.frame(xist = xist,
                  sample = rownames(xist),
                  sex = md$Sex)
 
-ggplot(df, aes(sample, xist, color = sex))+
+xistplot <- ggplot(df, aes(sample, xist, color = sex))+
   geom_point()+ 
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
   ylab('Normalized Xist expression')
 
+xistplot
 
-rm(gemnorm, df, xist)
+ggsave(xistplot, filename = 'results/allsamples/xist-expression.jpg', height = 5, width = 5, dpi = 300)
+
+
+rm(gemnorm, df, xist, xistplot)
+
+
+
+
+
+
+#### plot the lib size of all samples, including failed #####
+pdf <- data.frame(samp = colnames(gem), 
+                  numreadsaligned = colSums(gem),
+                  condition = md$Condition,
+                  batch = md$Batch,
+                  color = md$Color,
+                  stringsAsFactors = F
+)
+
+
+#order them from hi to low
+pdf$samp <- factor(pdf$samp, levels = pdf[order(pdf$numreadsaligned, decreasing = T),"samp"])
+pdf$condition <- factor(pdf$condition, levels = unique(pdf[order(pdf$numreadsaligned, decreasing = T),"condition"]))
+cols <- unique(pdf[order(pdf$numreadsaligned, decreasing = T),"color"])
+
+data.frame(cols = cols, condition = levels(pdf$condition))
+
+libsize_rawall <- ggplot(pdf, aes(x = samp, y = numreadsaligned, fill = condition))+
+  geom_bar(stat = 'identity')+
+  scale_fill_brewer(palette = 'Set1',direction = -1)+
+  scale_y_continuous(labels = scales::comma)+
+  theme_light()+
+  #scale_fill_brewer(palette = 'Set2')+
+  scale_fill_manual(values = cols)+
+  scale_y_continuous(limits = c(0,15000000), labels = scales::comma)+
+  coord_flip()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  labs(title = 'Number of aligned reads', 
+       subtitle = 'Non-normalized',
+       y = 'Number of reads aligned', x = 'Sample')
+
+libsize_rawall
+
+ggsave(libsize_rawall, filename = 'results/allsamples/libsize-whollelib.jpg', height = 5, width = 5, dpi = 300)
 
 
 
@@ -98,8 +142,12 @@ rm(bmlist)
 
 gem <- gem[match(coding$ensembl_gene_id, rownames(gem)),]
 
-saveRDS(file = 'data/coding,rds', coding)
+saveRDS(file = 'data/coding.rds', coding)
 
 saveRDS(file = 'data/gem.rds', gem)
 
 rm(coding, gem)
+
+
+
+
