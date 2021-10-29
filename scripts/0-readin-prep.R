@@ -1,6 +1,41 @@
 library(tidyverse)
 
 
+### use GTF for gene name and gene id, instead of biomart etc ###
+gtf <- read.table('data/gencode.vM23.chr_patch_hapl_scaff.annotation.gtf',
+                  sep = '\t', header = F)[,9]
+
+#get last gtf column, which has gene ID and gene name
+gtfsplit <- str_split_fixed(gtf, '; ', Inf)
+
+#keep only gene rows for gene labels? remove transcript, exon, etc
+gtfsplit <- gtfsplit[!duplicated(gtfsplit[,1]),]
+
+#keep only gene ID, gene names, and gene type
+gtfsplit <- gtfsplit[,c(1, 3, 2)]
+
+#remove prefixes
+gtfsplit[,1] <- gsub('gene_id ', replacement = '', gtfsplit[,1])
+gtfsplit[,2] <- gsub('gene_name ', replacement = '', gtfsplit[,2])
+gtfsplit[,3] <- gsub('gene_type ', replacement = '', gtfsplit[,3])
+
+#save and go
+
+gencode <- gtfsplit
+rm(gtf, gtfsplit)
+
+colnames(gencode) <- c('gene_id', 'gene_name', 'gene_type' )
+
+write.csv('data/gencode.vM23.ids_names_types.csv', x = gencode,
+          quote = F, row.names = F)
+
+gencode <- read.csv('data/gencode.vM23.ids_names_types.csv',
+)
+
+
+
+
+
 md <- readxl::read_excel('data/metadata.xlsx')
 files <- list.files('data/counts/', recursive = T, full.names = T)
 
@@ -36,8 +71,8 @@ rm(samplist)
 gem <- gem[,match(md$Sample, colnames(gem))]
 
 
-geneIDs_noversion <- gsub("\\..*","", rownames(gem))
-rownames(gem) <- geneIDs_noversion
+# geneIDs_noversion <- gsub("\\..*","", rownames(gem))
+# rownames(gem) <- geneIDs_noversion
 
 
 ### check sex ###
@@ -50,7 +85,7 @@ gemnorm <- as.data.frame(t( t(gem) / sizefactors ))
 
 
 #read in md, with sex labels
-xist <- t(gemnorm['ENSMUSG00000086503',])
+xist <- t(gemnorm['ENSMUSG00000086503.4',])
 
 df <- data.frame(xist = xist,
                  sample = rownames(xist),
@@ -111,36 +146,8 @@ ggsave(libsize_rawall, filename = 'results/allsamples/libsize-whollelib.jpg', he
 
 
 
-#select the protein-coding genes; need to use ensembl
-library(biomaRt)
-mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
 
-
-
-
-bmlist <- NULL
-
-while(is.null(bmlist) ){
-  try(
-    bmlist <- getBM(attributes=c("ensembl_gene_id","mgi_symbol","transcript_biotype"),
-                    filters = "ensembl_gene_id", values=geneIDs_noversion, mart=mouse)
-    
-  )
-  
-}
-
-rm(geneIDs_noversion, mouse)
-
-saveRDS(file = 'data/biomart.rds', bmlist)
-
-
-
-
-#select non-duplicate coding genes...
-coding <- bmlist[bmlist$transcript_biotype == 'protein_coding',]
-rm(bmlist)
-
-gem <- gem[match(coding$ensembl_gene_id, rownames(gem)),]
+# save and go
 
 saveRDS(file = 'data/coding.rds', coding)
 
