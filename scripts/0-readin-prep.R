@@ -29,8 +29,7 @@ colnames(gencode) <- c('gene_id', 'gene_name', 'gene_type' )
 write.csv('data/gencode.vM23.ids_names_types.csv', x = gencode,
           quote = F, row.names = F)
 
-gencode <- read.csv('data/gencode.vM23.ids_names_types.csv',
-)
+gencode <- read.csv('data/gencode.vM23.ids_names_types.csv')
 
 
 
@@ -50,7 +49,7 @@ for(file in files){
   
   samp <- read.table(file, sep = '\t', skip = 4)
   samp <- data.frame(row.names = samp[,1],
-                     counts = samp[,3])
+                     counts = samp[,2])
   
   colnames(samp)[1] <- basename
   
@@ -132,7 +131,7 @@ libsize_rawall <- ggplot(pdf, aes(x = samp, y = numreadsaligned, fill = conditio
   theme_light()+
   #scale_fill_brewer(palette = 'Set2')+
   scale_fill_manual(values = cols)+
-  scale_y_continuous(limits = c(0,15000000), labels = scales::comma)+
+  scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
   coord_flip()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(title = 'Number of aligned reads', 
@@ -151,7 +150,7 @@ ggsave(libsize_rawall, filename = 'results/allsamples/libsize-whollelib.jpg', he
 
 saveRDS(file = 'data/gem.rds', gem)
 
-rm(coding, gem)
+rm(list=ls())
 
 
 
