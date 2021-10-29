@@ -149,8 +149,6 @@ ggsave(libsize_rawall, filename = 'results/allsamples/libsize-whollelib.jpg', he
 
 # save and go
 
-saveRDS(file = 'data/coding.rds', coding)
-
 saveRDS(file = 'data/gem.rds', gem)
 
 rm(coding, gem)
