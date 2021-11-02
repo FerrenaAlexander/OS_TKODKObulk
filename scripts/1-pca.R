@@ -16,11 +16,13 @@ gem <- readRDS('data/gem.rds')
 gencode <- read.csv('data/gencode.vM23.ids_names_types.csv')
 md <- readxl::read_excel('data/metadata.xlsx')
 
+#keep only protein coding
+gencode <- gencode[gencode$gene_type == 'protein_coding',]
+gem <- gem[match(gencode$gene_id, rownames(gem)),]
 
 
 #### plot the lib size of all samples, including failed #####
-gencode <- gencode[gencode$gene_type == 'protein_coding',]
-gem <- gem[match(gencode$gene_id, rownames(gem)),]
+
 
 pdf <- data.frame(samp = colnames(gem), 
                   numreadsaligned = colSums(gem),
