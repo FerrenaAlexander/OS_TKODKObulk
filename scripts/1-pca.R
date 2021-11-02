@@ -276,4 +276,4 @@ print(hm)
 dev.off()
 
 
-
+rm(list=ls())
