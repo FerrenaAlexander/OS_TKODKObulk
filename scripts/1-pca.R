@@ -13,12 +13,15 @@ set.seed(2021)
 
 #read in
 gem <- readRDS('data/gem.rds')
-coding <- readRDS('data/coding.rds')
+gencode <- read.csv('data/gencode.vM23.ids_names_types.csv')
 md <- readxl::read_excel('data/metadata.xlsx')
 
 
 
 #### plot the lib size of all samples, including failed #####
+gencode <- gencode[gencode$gene_type == 'protein_coding',]
+gem <- gem[match(gencode$gene_id, rownames(gem)),]
+
 pdf <- data.frame(samp = colnames(gem), 
                   numreadsaligned = colSums(gem),
                   condition = md$Condition,
@@ -42,7 +45,7 @@ libsize_rawall <- ggplot(pdf, aes(x = samp, y = numreadsaligned, fill = conditio
   theme_light()+
   #scale_fill_brewer(palette = 'Set2')+
   scale_fill_manual(values = cols)+
-  scale_y_continuous(limits = c(0,15000000), labels = scales::comma)+
+  scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
   coord_flip()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(title = 'Number of reads aligned to protein-coding genes', 
@@ -107,7 +110,7 @@ libsize_norm <- ggplot(pdf, aes(x = samp, y = numreadsaligned, fill = condition)
   theme_light()+
   #scale_fill_brewer(palette = 'Set2')+
   scale_fill_manual(values = cols)+
-  scale_y_continuous(limits = c(0,15000000), labels = scales::comma)+
+  scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
   coord_flip()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(title = 'Number of reads aligned to protein-coding genes', 
@@ -146,6 +149,8 @@ rlog <- rlog(dds, blind = F)
 defaultDEseqpca = F
 
 if(defaultDEseqpca == T){
+  
+  ntop = 2000
   
   pcadata <- plotPCA(rlog, returnData=T, ntop=ntop, intgroup = c('Condition'))
   
@@ -202,7 +207,7 @@ pcaobj <- prcomp( rlmat )
 pdf <- as.data.frame(pcaobj$x[,1:2])
 pdf$name <- dds$Sample
 pdf$batch <- dds$Batch
-pdf$age <- dds$`Age_at_sack (week`()
+pdf$age <- dds$`Age_at_sack (week`
 pdf$tumor_location <- dds$Tumor_location
 pdf$condition <- factor(dds$Condition)
 pdf$color <- factor(md$Color, levels = unique(md$Color)[order(unique(pdf$condition))] )
@@ -269,4 +274,6 @@ jpeg('results/allsamples/hierarchicalclustering.jpg', height = 8, width = 10, un
 print(hm)
 
 dev.off()
+
+
 
