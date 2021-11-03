@@ -169,15 +169,30 @@ typedf <- typedf[typedf$type %in% agg$type,]
 typedf$type <- factor(typedf$type, levels = agg$type)
 
 
+#set custom color palette
+palette <- c(RColorBrewer::brewer.pal(Inf, 'Dark2'),
+             RColorBrewer::brewer.pal(Inf, 'Set2'),
+             RColorBrewer::brewer.pal(Inf, 'Set1'),
+             RColorBrewer::brewer.pal(Inf, 'Paired'),
+             RColorBrewer::brewer.pal(Inf, 'Accent')
+             
+)
+
+
+set.seed(2021)
+pal <- sample(palette, nrow(agg))
 
 libsize_species <- ggplot(typedf, aes(fill = type, y = SpeciesCount, x  = samp))+
   geom_bar(position="stack", stat="identity")+
   scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
   coord_flip()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  labs(title = 'Number of aligned reads', 
-       subtitle = 'Non-normalized',
-       y = 'Number of reads aligned', x = 'Sample')
+  labs(title = 'TPM of aligned reads', 
+       subtitle = 'TPM from different RNA species',
+       y = 'Number of reads aligned', x = 'Sample')+
+  scale_fill_manual(values = pal)
+
+libsize_species
 
 ggsave(libsize_species, filename = 'results/allsamples/libsize-species.jpg', height = 5, width = 10, dpi = 300)
 
