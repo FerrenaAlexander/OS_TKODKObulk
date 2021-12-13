@@ -89,6 +89,7 @@ gemnorm <- as.data.frame(t( t(gem) / sizefactors ))
 
 
 #### plot the lib size #####
+nonnormpdf <- pdf
 pdf <- data.frame(samp = colnames(gemnorm), 
                   numreadsaligned = colSums(gemnorm),
                   condition = md$Condition,
@@ -99,7 +100,7 @@ pdf <- data.frame(samp = colnames(gemnorm),
 
 
 #order them from hi to low
-pdf$samp <- factor(pdf$samp, levels = pdf[order(pdf$numreadsaligned, decreasing = T),"samp"])
+pdf$samp <- factor(pdf$samp, levels = levels(nonnormpdf$samp))
 pdf$condition <- factor(pdf$condition, levels = unique(pdf[order(pdf$numreadsaligned, decreasing = T),"condition"]))
 cols <- unique(pdf[order(pdf$numreadsaligned, decreasing = T),"color"])
 
