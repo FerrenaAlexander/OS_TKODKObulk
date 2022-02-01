@@ -63,11 +63,11 @@ mdx <- cbind(md, dct)
 celltypes <- colnames(dct)
 ctlist <- list()
 for(ct in celltypes){
-   
+  
   pdf <- data.frame(Sample = mdx$Sample,
-                       Condition = mdx$Condition,
+                    Condition = mdx$Condition,
                     estimate = mdx[,ct],
-                       celltype = ct
+                    celltype = ct
   )
   
   pdf[pdf$mMCP_estimate==-Inf,"estimate"] <- 0
@@ -75,24 +75,64 @@ for(ct in celltypes){
   p <- t.test(pdf[pdf$Condition=='TKO',"estimate"],
               pdf[pdf$Condition=='DKO',"estimate"])$p.value
   
-  p <- signif(p, digits = 2)
   
-  pdf$celltype_pvalue <- paste0(ct, '\nP = ', p)
+  pdf$pval <- p
+  
+  pdf$meandiff <- mean( pdf[pdf$Condition=='TKO',"estimate"] ) - mean(pdf[pdf$Condition=='DKO',"estimate"])
+  
+  if(p >= 0.05){
+    
+    p <- signif(p, digits = 2)
+    
+    pdf$celltype_pvalue <- paste0(ct, '\nP = ', p)
+    
+  }
+  
+  if(p < 0.05 & p >= 0.01) {
+    
+    p <- signif(p, digits = 2)
+    
+    pdf$celltype_pvalue <- paste0(ct, '\n* P = ', p, ' *')
+    
+  }
+  
+  if(p < 0.01 & p >= 0.001) {
+    
+    p <- signif(p, digits = 2)
+    
+    pdf$celltype_pvalue <- paste0(ct, '\n** P = ', p, ' **')
+    
+  }
+  
+  if(p < 0.001) {
+    
+    p <- signif(p, digits = 2)
+    
+    pdf$celltype_pvalue <- paste0(ct, '\n*** P = ', p, ' ***')
+    
+  }
+  
   
   ctlist[[ct]] <- pdf
   
-
+  
 }
 ctres <- dplyr::bind_rows(ctlist)
 
 #plot them
 
-#sort celltypes by global mean?
+#sort celltypes by global mean
 ctag <- aggregate(estimate ~ celltype, ctres, mean)
 ctres$celltype <- factor(ctres$celltype, levels =   ctag[order(ctag$estimate, decreasing = T),"celltype"])
 
+
+#sort celltypes pval by lowest pvalue...
 ctag <- aggregate(estimate ~ celltype_pvalue, ctres, mean)
-ctres$celltype_pvalue <- factor(ctres$celltype_pvalue, levels =   ctag[order(ctag$estimate, decreasing = T),"celltype_pvalue"])
+ctpval <- data.frame(celltype_pvalue = ctres$celltype_pvalue, 
+                     pval = ctres$pval)
+ctpval <- ctpval[!duplicated(ctpval$celltype_pvalue),]
+ctpval <- ctpval[order(ctpval$pval),]
+ctres$celltype_pvalue <- factor(ctres$celltype_pvalue, levels =   ctpval$celltype_pvalue)
 
 
 
@@ -102,7 +142,7 @@ colnames(ctres)[3] <- 'mMCP_estimate'
 
 #boxplots comparing conditions
 
-ggplot(ctres, aes(Condition, mMCP_estimate, fill = Condition))+
+gbox <- ggplot(ctres, aes(Condition, mMCP_estimate, fill = Condition))+
   geom_point()+
   geom_boxplot()+
   facet_wrap(~ celltype_pvalue)+
@@ -121,7 +161,7 @@ pal <- c( RColorBrewer::brewer.pal(Inf, "Set1"),
 pal <- sample(pal, size = length(levels(ctres$celltype)), replace = F)
 
 
-ggplot(ctres, aes(Sample, mMCP_estimate, fill = celltype))+
+gbar <- ggplot(ctres, aes(Sample, mMCP_estimate, fill = celltype))+
   geom_bar(position="stack", stat="identity")+
   theme(axis.text.x = element_text(angle = 45, vjust =1, hjust=1))+
   scale_fill_manual(values = pal)
@@ -129,6 +169,19 @@ ggplot(ctres, aes(Sample, mMCP_estimate, fill = celltype))+
 
 
 
+# save res
+ggsave('results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/barplot.jpg',
+       gbar)
+
+ggsave('results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/boxplots.jpg',
+       gbox)
+
+
+# exclude character formatted celltype + pval...
+ctressave <- ctres[,-ncol(ctres)]
+write.csv(ctressave,
+          'results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/mmcpres.csv', 
+          quote = F, row.names = F)
 
 
 
