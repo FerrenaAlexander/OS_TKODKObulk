@@ -1,57 +1,26 @@
 library(tidyverse)
 
 
-### use GTF for gene name and gene id, instead of biomart etc ###
-gencodefile <- 'data/gencode.vM23.ids_names_types.csv'
-if(!file.exists(gencodefile)){
-  
-  gtf <- read.table('data/gencode.vM23.chr_patch_hapl_scaff.annotation.gtf',
-                    sep = '\t', header = F)[,9]
-  
-  #get last gtf column, which has gene ID and gene name
-  gtfsplit <- str_split_fixed(gtf, '; ', Inf)
-  
-  #keep only gene rows for gene labels? remove transcript, exon, etc
-  gtfsplit <- gtfsplit[!duplicated(gtfsplit[,1]),]
-  
-  #keep only gene ID, gene names, and gene type
-  gtfsplit <- gtfsplit[,c(1, 3, 2)]
-  
-  #remove prefixes
-  gtfsplit[,1] <- gsub('gene_id ', replacement = '', gtfsplit[,1])
-  gtfsplit[,2] <- gsub('gene_name ', replacement = '', gtfsplit[,2])
-  gtfsplit[,3] <- gsub('gene_type ', replacement = '', gtfsplit[,3])
-  
-  #save and go
-  
-  gencode <- gtfsplit
-  rm(gtf, gtfsplit)
-  
-  colnames(gencode) <- c('gene_id', 'gene_name', 'gene_type' )
-  
-  write.csv(gencodefile, x = gencode,
-            quote = F, row.names = F)
-  
-}
-
-gencode <- read.csv('data/gencode.vM23.ids_names_types.csv')
-
-
+### we will use the star reference geneInfo.tab file
+gencode <- read.table('data/geneInfo.tab', sep = '\t', skip = 1, header = F)
+colnames(gencode) <- c('gene_id', 'gene_name', 'gene_type')
 
 
 #readin data
 md <- readxl::read_excel('data/metadata.xlsx')
-files <- list.files('data/counts/', recursive = T, full.names = T)
+files <- list.files('data/star-starfusion/counts/', recursive = T, full.names = T, pattern = '.tab')
 
 samplist <- list()
 for(file in files){
   
-  sampname <- str_split_fixed(file, '/', Inf)[,4]
-  basename <- str_sub(sampname, 10)
+  sampname <- str_split_fixed(file, '/', Inf)[,5]
+  # basename <- str_sub(sampname, 10)
+  basename <- sampname
   
   message(sampname)
   
-  
+  # take second column;
+  # just pick col with highest colsums
   samp <- read.table(file, sep = '\t', skip = 4)
   samp <- data.frame(row.names = samp[,1],
                      counts = samp[,2])
@@ -85,13 +54,12 @@ gemnorm <- as.data.frame(t( t(gem) / sizefactors ))
 
 
 #read in md, with sex labels
-xist <- t(gemnorm['ENSMUSG00000086503.4',])
+xist <- t(gemnorm['ENSG00000229807',])
 
 df <- data.frame(xist = xist,
-                 sample = rownames(xist),
-                 sex = md$Sex)
+                 sample = rownames(xist))
 
-xistplot <- ggplot(df, aes(sample, xist, color = sex))+
+xistplot <- ggplot(df, aes(sample, xist))+
   geom_point()+ 
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
   ylab('Normalized Xist expression')
@@ -111,9 +79,9 @@ rm(gemnorm, df, xist, xistplot)
 #### plot the lib size of all samples #####
 pdf <- data.frame(samp = colnames(gem), 
                   numreadsaligned = colSums(gem),
-                  condition = md$Condition,
-                  batch = md$Batch,
-                  color = md$Color,
+                  condition = md$Treatment,
+                  cellline = md$CellLine,
+                  color=md$TreatmentColor,
                   stringsAsFactors = F
 )
 
@@ -132,7 +100,7 @@ libsize_rawall <- ggplot(pdf, aes(x = samp, y = numreadsaligned, fill = conditio
   theme_light()+
   #scale_fill_brewer(palette = 'Set2')+
   scale_fill_manual(values = cols)+
-  scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
+  #scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
   coord_flip()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(title = 'Number of aligned reads', 
@@ -187,7 +155,7 @@ typedf$samp <- factor(typedf$samp, levels = levels(pdf$samp))
 
 libsize_species <- ggplot(typedf, aes(fill = type, y = SpeciesCount, x  = samp))+
   geom_bar(position="stack", stat="identity")+
-  scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
+  # scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
   coord_flip()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(title = 'Number of aligned reads', 

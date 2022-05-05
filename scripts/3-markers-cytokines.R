@@ -202,7 +202,7 @@ geneannots <- data.frame(genes = c('Ptprc'),
                          color = 'black')
 
 geneannots <- rbind(geneannots,
-                    data.frame(genes = c('Col1a1', 'Osx', 'Col1a2', 'Sox9', 'Ibsp'),
+                    data.frame(genes = c('Col1a1', 'Sp7', 'Col1a2', 'Sox9', 'Ibsp'),
                                celltype = 'Malignant OS',
                                color = 'purple')
 )
@@ -262,7 +262,17 @@ markerheatmap(gem, geneannots$genes, metadata = md, geneannots = geneannots, res
               scale=F, name = 'log2\nnormalized\ncounts')
 
 
+mhm <- markerheatmap(gem, geneannots$genes, metadata = md, geneannots = geneannots, res=res, cluster_rows = F,
+                     name = 'scaled\nlog2\nnormalized\ncounts')
 
+
+jpeg(paste0('/Users/ferrenaa/Dropbox/data/bangdata/2021october-TKOvsDKO/results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/markerheatmap.jpg'),
+     height = 6, width = 6, units = 'in', res = 300)
+
+
+mhm
+
+dev.off()
 
 
 #M1 and M2
@@ -398,11 +408,15 @@ markerheatmap(gem, geneannots$genes, metadata = md, geneannots = geneannots, res
 
 
 
+#read in panglaodb markers...
 
+pdb <- read.table('~/Dropbox/data/PanglaoDB_markers_27_Mar_2020.tsv', sep='\t', header = T)
 
+#select only mouse or mouse/human both genes
+pdb <- pdb[grepl('Mm', pdb$species),]
 
+#select only fulll rows
+pdb <- pdb[complete.cases(pdb),]
 
-
-### update 2022.01.28 - try module score for m1 vs m2
 
 

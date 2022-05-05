@@ -49,6 +49,9 @@ rm(gemnorm)
 dc <- mMCPcounter.estimate(gemlog, features = "ENSEMBL.ID")
 
 
+#rename monocytes/macs to just macs?
+rownames(dc)[grepl('Monocytes / macrophages', rownames(dc))] <- 'Macrophages'
+
 
 
 
@@ -147,7 +150,8 @@ gbox <- ggplot(ctres, aes(Condition, mMCP_estimate, fill = Condition))+
   geom_boxplot()+
   facet_wrap(~ celltype_pvalue)+
   scale_fill_manual(values = rev(unique(md$Color)))+
-  labs(caption = 'Statistics via T test')
+  labs(caption = 'Statistics via T test')+
+  theme_linedraw()
 
 
 
@@ -162,19 +166,21 @@ pal <- sample(pal, size = length(levels(ctres$celltype)), replace = F)
 
 
 gbar <- ggplot(ctres, aes(Sample, mMCP_estimate, fill = celltype))+
-  geom_bar(position="stack", stat="identity")+
+  geom_bar(position="stack", stat="identity")+  
+  theme_linedraw()+
   theme(axis.text.x = element_text(angle = 45, vjust =1, hjust=1))+
   scale_fill_manual(values = pal)
 
 
 
 
+
 # save res
 ggsave('results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/barplot.jpg',
-       gbar)
+       gbar, width = 5, height = 5, dpi = 400)
 
 ggsave('results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/boxplots.jpg',
-       gbox)
+       gbox, width = 7, height = 7, dpi = 500)
 
 
 # exclude character formatted celltype + pval...

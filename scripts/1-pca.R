@@ -13,12 +13,19 @@ set.seed(2021)
 
 #read in
 gem <- readRDS('data/gem.rds')
-gencode <- read.csv('data/gencode.vM23.ids_names_types.csv')
+gencode <- read.table('data/geneInfo.tab', sep = '\t', skip = 1, header = F)
+colnames(gencode) <- c('gene_id', 'gene_name', 'gene_type')
+
 md <- readxl::read_excel('data/metadata.xlsx')
 
 #keep only protein coding
 gencode <- gencode[gencode$gene_type == 'protein_coding',]
+gencode <- gencode[gencode$gene_id %in% rownames(gem),]
 gem <- gem[match(gencode$gene_id, rownames(gem)),]
+
+
+#order the gem by treatment...
+md <- md[order(md$Treatment),]
 
 
 #### plot the lib size of all samples, including failed #####
@@ -26,9 +33,9 @@ gem <- gem[match(gencode$gene_id, rownames(gem)),]
 
 pdf <- data.frame(samp = colnames(gem), 
                   numreadsaligned = colSums(gem),
-                  condition = md$Condition,
-                  batch = md$Batch,
-                  color = md$Color,
+                  condition = md$Treatment,
+                  cellline = md$CellLine,
+                  color=md$TreatmentColor,
                   stringsAsFactors = F
 )
 
@@ -47,7 +54,7 @@ libsize_rawall <- ggplot(pdf, aes(x = samp, y = numreadsaligned, fill = conditio
   theme_light()+
   #scale_fill_brewer(palette = 'Set2')+
   scale_fill_manual(values = cols)+
-  scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
+  # scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
   coord_flip()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(title = 'Number of reads aligned to protein-coding genes', 
@@ -90,13 +97,14 @@ gemnorm <- as.data.frame(t( t(gem) / sizefactors ))
 
 #### plot the lib size #####
 nonnormpdf <- pdf
-pdf <- data.frame(samp = colnames(gemnorm), 
+pdf <- data.frame(samp = colnames(gem), 
                   numreadsaligned = colSums(gemnorm),
-                  condition = md$Condition,
-                  batch = md$Batch,
-                  color = md$Color,
+                  condition = md$Treatment,
+                  cellline = md$CellLine,
+                  color=md$TreatmentColor,
                   stringsAsFactors = F
 )
+
 
 
 #order them from hi to low
@@ -113,7 +121,7 @@ libsize_norm <- ggplot(pdf, aes(x = samp, y = numreadsaligned, fill = condition)
   theme_light()+
   #scale_fill_brewer(palette = 'Set2')+
   scale_fill_manual(values = cols)+
-  scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
+  # scale_y_continuous(limits = c(0,25000000), labels = scales::comma)+
   coord_flip()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(title = 'Number of reads aligned to protein-coding genes', 
@@ -125,6 +133,7 @@ libsize_norm
 ggsave(libsize_norm, filename = 'results/allsamples/libsize-proteincoding-normalized.jpg', height = 5, width = 5, dpi = 300)
 
 
+rm(gemnorm)
 
 
 ##### PCA #####
@@ -134,7 +143,7 @@ ggsave(libsize_norm, filename = 'results/allsamples/libsize-proteincoding-normal
 
 #create dds obj
 dds <- DESeqDataSetFromMatrix(gem, md,
-                              design = ~ Condition)
+                              design = ~ Treatment)
 
 
 #run DESeq2 
@@ -208,23 +217,17 @@ rlmat <- t(rlmat)
 pcaobj <- prcomp( rlmat )
 
 pdf <- as.data.frame(pcaobj$x[,1:2])
-pdf$name <- dds$Sample
-pdf$batch <- dds$Batch
-pdf$age <- dds$`Age_at_sack (week`
-pdf$tumor_location <- dds$Tumor_location
-pdf$condition <- factor(dds$Condition)
-pdf$color <- factor(md$Color, levels = unique(md$Color)[order(unique(pdf$condition))] )
-
+pdf <- cbind(pdf, md)
 
 
 data.frame(levels(pdf$condition), levels(pdf$color))
 
 
-pca_recoded <- ggplot(pdf, aes(PC1, PC2, col = condition, shape = batch))+
+pca_recoded <- ggplot(pdf, aes(PC1, PC2, col = Treatment, shape = CellLine))+
   geom_point(size = 3)+
   ggrepel::geom_text_repel(aes(label = name), box.padding = 0.4)+
   #scale_color_brewer(palette = 'Set2', direction = -1)+
-  scale_color_manual(values = levels(pdf$color))+
+  scale_color_manual(values = pdf$TreatmentColor)+
   theme_light()
 
 pca_recoded
@@ -250,12 +253,12 @@ cormat <- cor(t(rlmat))
 
 annotdf <- data.frame(sample = colnames(cormat),
                       sampcheck = md[match(colnames(cormat), md$Sample), "Sample"],
-                      cond = md[match(colnames(cormat), md$Sample), "Condition"],
-                      color = md[match(colnames(cormat), md$Sample), "Color"])
+                      cond = md[match(colnames(cormat), md$Sample), "Treatment"],
+                      color = md[match(colnames(cormat), md$Sample), "TreatmentColor"])
 
-hacol <- list(Condition = annotdf$Color) ; names(hacol[[1]]) <- annotdf$Condition
-ha <- HeatmapAnnotation(Condition = annotdf[,3], col = hacol, name = 'Condition')
-hal <- rowAnnotation(Condition = annotdf[,3], col = hacol, name = 'Condition')
+hacol <- list(Condition = annotdf$TreatmentColor) ; names(hacol[[1]]) <- annotdf$Treatment  
+ha <- HeatmapAnnotation(Condition = annotdf[,3], col = hacol, name = 'Treatment', show_legend = F)
+hal <- rowAnnotation(Condition = annotdf[,3], col = hacol, name = 'Treatment')
 
 hm <- Heatmap(cormat, name = "Pearson r", 
               col=colors,
