@@ -71,11 +71,6 @@ colnames(tpmsave)[1] <- 'Ensembl_ID'
 cond <- data.frame(feature = md$Condition)
 
 
-#keep only TKO
-# first col is gene ids
-tpmsave <- tpmsave[,1:4]
-cond <- cond[1:3,]
-
 #save
 macspectrumdir <- 'results/comparative-de/TKO-vs-DKO/4.downstream/macspectrum'
 
@@ -84,6 +79,24 @@ write.csv(tpmsave, paste0(macspectrumdir, '/tpm.csv'),
 
 
 write.csv(cond, paste0(macspectrumdir, '/feature.csv'),
+          quote = F, row.names = F)
+
+
+
+
+#keep only TKO
+# first col is gene ids
+tpmsave <- tpmsave[,1:4]
+cond <- cond[1:3,]
+
+
+
+
+write.csv(tpmsave, paste0(macspectrumdir, '/tpm_justTKO.csv'),
+          quote = F, row.names = F)
+
+
+write.csv(cond, paste0(macspectrumdir, '/feature_justTKO.csv'),
           quote = F, row.names = F)
 
 
@@ -189,3 +202,102 @@ volcano
 ggsave('results/comparative-de/TKO-vs-DKO/2.deresults/volcano_bigger.jpg', width = 5, height = 4.5, dpi=300)
 
 
+
+
+
+
+
+
+
+##### DE of some key genes related to E2F1 / Apoptosis, qPCR style #####
+
+res <- read.csv('results/comparative-de/TKO-vs-DKO/2.deresults/DEresults-normalized_count_matrix.csv')
+
+
+
+
+# get key genes
+keygenes <- c('Skp2','E2f1', 'Bbc3', 'Bid', 'Bcl2l11', 'Casp3', 'Apoe', 'Ctss', 'Sh2d6', 'Lcn2')
+
+# set ref gene
+ref <- c('Gapdh')
+
+
+#make sure they are in the gene list
+keygenes %in% res$mgi_symbol
+ref %in% res$mgi_symbol
+
+
+
+
+#qpcr style DE:
+# ratio of each gene over ref gene, gapdh.
+# compare ratios in TKO vs DKO via wilcox...
+
+
+#get the matrix
+smallres <- res[match(c(keygenes,ref), res$mgi_symbol),]
+smallmat <- smallres[,c(2,9:ncol(smallres))]
+rownames(smallmat) <- smallmat[,1] ; smallmat <- smallmat[,-1]
+
+#get test vs ref
+testmat <- smallmat[keygenes,]
+refmat <- smallmat[ref,]
+
+#divide each column; do it very explicity and carefully...
+outlist <- list()
+for(i in 1:ncol(testmat)){
+  
+  samp <- colnames(testmat)[i]
+  testcol <- testmat[,i]
+  refscalar <- refmat[,i]
+  
+  out <- data.frame(testcol / refscalar)
+  rownames(out) <- rownames(testmat)
+  colnames(out) <- samp
+  
+  outlist[[i]] <- out
+}
+
+ratiomat <- dplyr::bind_cols(outlist)
+
+
+# ANALYZE:
+# wilcox test
+c1ratios <- ratiomat[,1:3]
+c2ratios <- ratiomat[,4:6]
+
+compres <- lapply(1:length(keygenes), function(i) {
+  gene <- keygenes[i]
+  
+  xvec <- t(c1ratios[i,])[,1]
+  yvec <- t(c2ratios[i,])[,1]
+  
+  wilcoxout <- wilcox.test(xvec , yvec)
+  tout <- t.test( xvec,  yvec )
+  
+  data.frame(gene = gene,
+             wilcoxp = wilcoxout$p.value,
+             ttestp = tout$p.value)
+}  )
+
+
+
+compres <- dplyr::bind_rows(compres)
+
+
+
+#make some plots
+plotmat <- as.data.frame(t(ratiomat))
+
+plotmat$Genotype <- c(rep(c('TKO', 'DKO'), each=3))
+
+plotmatwide <- reshape2::melt(plotmat)
+plotmatwide$value <- log2(plotmatwide$value)
+
+ggplot(plotmatwide, aes(Genotype, value, col = Genotype))+
+  geom_point()+
+  facet_wrap(~variable, nrow = 2) +
+  ylab('Log2(gene / Gapdh)')
+
+compres

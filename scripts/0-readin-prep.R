@@ -7,8 +7,8 @@ colnames(gencode) <- c('gene_id', 'gene_name', 'gene_type')
 
 
 #readin data
-md <- readxl::read_excel('data/metadata.xlsx')
-files <- list.files('data/star-starfusion/counts/', recursive = T, full.names = T, pattern = '.tab')
+md <- as.data.frame(readxl::read_excel('data/metadata.xlsx'))
+files <- list.files('data/counts/', recursive = T, full.names = T, pattern = '.tab')
 
 samplist <- list()
 for(file in files){

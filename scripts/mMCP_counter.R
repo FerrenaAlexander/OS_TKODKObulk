@@ -31,6 +31,16 @@ rownames(gem) <- gencode$gene_id
 
 
 
+#give it a label...
+md$Sample
+code <- data.frame(Sample = c("TL724M0T", "TL30F1T",  "TL744F2T", "DL761M2R", "DL579FOR", "DL608F1R"),
+                   Code = c('TKO1', 'TKO2', 'TKO3', 'DKO1', 'DKO2', 'DKO3'))
+
+md$Code <- code$Code
+colnames(gem) <- code$Code
+md$Sample <- code$Code
+
+
 ### prep for mMCP-Counter ###
 
 # input is normalized, log-transformed counts
@@ -165,6 +175,8 @@ pal <- c( RColorBrewer::brewer.pal(Inf, "Set1"),
 pal <- sample(pal, size = length(levels(ctres$celltype)), replace = F)
 
 
+
+
 gbar <- ggplot(ctres, aes(Sample, mMCP_estimate, fill = celltype))+
   geom_bar(position="stack", stat="identity")+  
   theme_linedraw()+
@@ -181,6 +193,14 @@ ggsave('results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/barplot.jpg'
 
 ggsave('results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/boxplots.jpg',
        gbox, width = 7, height = 7, dpi = 500)
+
+
+pdf('results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/boxplots.pdf',
+    width = 5, height = 5)
+gbar
+
+dev.off()
+
 
 
 # exclude character formatted celltype + pval...
