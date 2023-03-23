@@ -13,7 +13,7 @@ files <- list.files('data/counts/', recursive = T, full.names = T, pattern = '.t
 samplist <- list()
 for(file in files){
   
-  sampname <- str_split_fixed(file, '/', Inf)[,5]
+  sampname <- str_split_fixed(file, '/', Inf)[,4]
   # basename <- str_sub(sampname, 10)
   basename <- sampname
   

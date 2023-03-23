@@ -34,10 +34,13 @@ res$ensembl_gene_id <- str_split_fixed(res$ensembl_gene_id, '\\.', 2)[,1]
 
 res <- res[res$padj < 0.05,]
 res <- res[res$log2FoldChange < -1,]
-res <- res[order(abs(res$logFC), decreasing = T),]
+res <- res[order(abs(res$log2FoldChange), decreasing = T),]
 
 genenames <- res$mgi_symbol
 
+
+namedfc <- res$log2FoldChange
+names(namedfc) <- res$mgi_symbol
 
 
 # COLOR PALETTE
@@ -694,6 +697,24 @@ dev.off()
 
 
 
+pdf(paste0(outdir, '/finalplots_cnet_UPDATED.pdf'), width = 7, height = 7)
+
+pways <- c('HALLMARK_HYPOXIA', 
+           "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION",
+           'HALLMARK_CHOLESTEROL_HOMEOSTASIS'
+)
+cnetplot(obj, showCategory = pways, foldChange = namedfc,
+         shadowtext='category',
+         node_label = 'all',
+         cex_gene = 0.3, cex_label_gene = 0.5, cex_label_category = 0, 
+         max.overlaps = Inf, layout = 'kk')
+
+
+dev.off()
+
+
+
+
 #### heatmaps stratify by pathway
 
 pathways <- readRDS('~/Dropbox/data/general_data_utilities/msigdb/msigdb_mouse.2022.may.12.rds')
@@ -954,6 +975,113 @@ dev.off()
 
 
 
+
+
+
+#pick categories
+mycats <- data.frame(category = c(rep( 'MSIGDB Hallmarks', 3),
+                                  rep('C3: TF Targets',4),
+                                  rep('C6: Oncogenic', 3)),
+                     ID = c('HALLMARK_HYPOXIA', "HALLMARK_MTORC1_SIGNALING" , 'HALLMARK_TNFA_SIGNALING_VIA_NFKB',
+                            'PRDM4_TARGET_GENES', 'CEBPDELTA_Q6', 'NFKB_Q6',  'CHOP_01',
+                            "E2F1_UP.V1_DN", "MTOR_UP.N4.V1_UP" , "EGFR_UP.V1_UP" )
+)
+
+
+#get pvalue, padj, and %DEGs
+mycats <- cbind(mycats, pwayres[match(mycats$ID, pwayres$ID),c('Percent_of_DEGs', 'p.adjust', 'Count', 'GeneRatio')] )
+mycats$GeneRatio <- DOSE::parse_ratio(mycats$GeneRatio)
+
+#hallmark, then goBP, then c6
+mycats$category <- factor(mycats$category, levels = c( 'MSIGDB Hallmarks', 'C3: TF Targets', 'C6: Oncogenic') )
+
+#save ID for cnetplots
+mycats$oldid <- mycats$ID
+
+# #fix long pway names
+# pnames <- mycats$ID 
+# pnewnames <- c()
+# for(p in pnames){
+#   
+#   
+#   if(str_length(p) > 20){
+#     
+#     #try to find and replace underscore closest to halfway...
+#     halfway <- round(str_length(p)/2)
+#     underscorepos <- str_locate_all(p,'_')[[1]][,1]
+#     
+#     distances <- abs(halfway-underscorepos)
+#     
+#     which_und_is_closest <- which.min(distances)
+#     
+#     split <- str_split_fixed(p,'_',Inf)
+#     
+#     newp <- paste0(paste(split[1,1:which_und_is_closest], collapse = '_'),
+#                    '\n',
+#                    paste(split[1,(which_und_is_closest+1):ncol(split)], collapse = '_')
+#     )
+#     
+#     
+#     
+#   } else{newp <- p}
+#   
+#   pnewnames <- c(pnewnames, newp)
+#   
+# }
+# 
+# mycats$ID <- pnewnames
+
+
+### edit the tf target names
+
+# mycats[mycats$ID == 'PRDM4_TARGET_GENES', 'ID']
+mycats[mycats$ID == 'CEBPDELTA_Q6', 'ID'] <- 'C/EBP-D targets - "CEBPDELTA_Q6"'
+mycats[mycats$ID == 'NFKB_Q6', 'ID'] <- 'NF-KB targets - "NFKB_Q6"'
+mycats[mycats$ID == 'CHOP_01', 'ID'] <- 'CHOP targets - "CHOP_01"'
+
+#order pathways by pvalue
+mycats$ID <- factor(mycats$ID, levels = mycats[order(mycats$GeneRatio, decreasing = F),'ID'])
+
+
+
+
+
+
+pdf(paste0(outdir, '/finalplots_dotplot_STRAT-BY-CATEGORY_UPDATED.pdf'), width = 9, height = 5)
+
+ggplot(mycats, aes(GeneRatio, ID, size = Percent_of_DEGs, col = p.adjust))+
+  geom_point() + 
+  facet_wrap(~category, nrow = 3, scales='free_y')+
+  scale_color_gradient2(low="steelblue",high='gray', midpoint = 0.05)+
+  theme_linedraw()+
+  theme(axis.text.x = element_text(size = 6), axis.text.y = element_text(size = 15)) +
+  ylab('')
+
+
+
+
+dev.off()
+
+
+
+
+
+cnetplot(obj, showCategory = mycats[mycats$category == 'C3: TF Targets', 'oldid'], 
+         foldChange = namedfc,
+         shadowtext='category',
+         node_label = 'all',
+         cex_gene = 0.3, cex_label_gene = 0.5, cex_label_category = 0.8, 
+         max.overlaps = Inf, layout = 'kk')
+
+
+
+
+cnetplot(obj, showCategory = mycats[mycats$category == 'C6: Oncogenic', 'oldid'], 
+         foldChange = namedfc,
+         shadowtext='category',
+         node_label = 'all',
+         cex_gene = 0.3, cex_label_gene = 0.5, cex_label_category = 0.8, 
+         max.overlaps = Inf, layout = 'kk')
 
 
 

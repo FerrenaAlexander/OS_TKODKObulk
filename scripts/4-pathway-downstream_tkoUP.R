@@ -34,10 +34,14 @@ res$ensembl_gene_id <- str_split_fixed(res$ensembl_gene_id, '\\.', 2)[,1]
 
 res <- res[res$padj < 0.05,]
 res <- res[res$log2FoldChange > 1,]
-res <- res[order(abs(res$logFC), decreasing = T),]
+res <- res[order(abs(res$log2FoldChange), decreasing = T),]
 
 genenames <- res$mgi_symbol
 
+
+
+namedfc <- res$log2FoldChange
+names(namedfc) <- res$mgi_symbol
 
 
 # COLOR PALETTE
@@ -682,6 +686,24 @@ cnetplot(obj, showCategory = pways, foldChange = namedfc,
 dev.off()
 
 
+options(ggrepel.max.overlaps = Inf)
+pdf(paste0(outdir, '/finalplots_cnet_UPDATED.pdf'), width = 7, height = 7)
+
+pways <- c('GOBP_LEUKOCYTE_MIGRATION', 
+           "GOBP_ENDOTHELIUM_DEVELOPMENT",
+           'GOBP_MUSCLE_SYSTEM_PROCESS'
+)
+
+
+cnetplot(obj, showCategory = pways, foldChange = namedfc,
+         shadowtext='category',
+         node_label = 'all',
+         cex_gene = 0.3, cex_label_gene = 0.5, cex_label_category = 0, 
+         max.overlaps = Inf, layout = 'kk')
+
+
+
+dev.off()
 
 
 
@@ -874,6 +896,10 @@ dotplot(obj, showCategory=c6$gs_name[1:30],
 
 
 
+
+
+
+
 #pick categories
 mycats <- data.frame(category = rep(c( 'MSIGDB Hallmarks', 'GO: Biological Process', 'C6:Oncogenic'), each=3),
                      ID = c('HALLMARK_MYOGENESIS', 'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_KRAS_SIGNALING_UP',
@@ -931,16 +957,128 @@ mycats$ID <- factor(mycats$ID, levels = mycats[order(mycats$GeneRatio, decreasin
   
 
 
-pdf(paste0(outdir, '/finalplots_dotplot_STRAT-BY-CATEGORY.pdf'), width = 5, height = 5)
+pdf(paste0(outdir, '/finalplots_dotplot_STRAT-BY-CATEGORY_UPDATED.pdf'), width = 5, height = 5)
 
 ggplot(mycats, aes(GeneRatio, ID, size = Percent_of_DEGs, col = p.adjust))+
   geom_point() + 
   facet_wrap(~category, nrow = 3, scales='free_y')+
   scale_color_gradient2(low="firebrick",high='gray', midpoint = 0.05)+
   theme_linedraw()+
-  theme(axis.text.x = element_text(size = 6), axis.text.y = element_text(size = 8)) +
+  theme(axis.text.x = element_text(size = 6), axis.text.y = element_text(size = 10)) +
   ylab('')
   
 
 dev.off()
 
+
+
+
+
+
+
+
+
+#pick categories
+mycats <- data.frame(category = c(rep( 'MSIGDB Hallmarks', 3),
+                                  rep('C3: TF Targets',4),
+                                  rep('C6: Oncogenic', 3)),
+                     ID = c('HALLMARK_MYOGENESIS', 'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_KRAS_SIGNALING_UP',
+                            'CTAWWWATA_RSRFC4_Q2', 'E12_Q6', 'COREBINDINGFACTOR_Q6', 'AP4_Q6_01',
+                            "SNF5_DN.V1_UP", "MEK_UP.V1_UP" , "KRAS.LUNG_UP.V1_UP" )
+)
+
+
+#get pvalue, padj, and %DEGs
+mycats <- cbind(mycats, pwayres[match(mycats$ID, pwayres$ID),c('Percent_of_DEGs', 'p.adjust', 'Count', 'GeneRatio')] )
+mycats$GeneRatio <- DOSE::parse_ratio(mycats$GeneRatio)
+
+#hallmark, then goBP, then c6
+mycats$category <- factor(mycats$category, levels = c( 'MSIGDB Hallmarks', 'C3: TF Targets', 'C6: Oncogenic') )
+
+#save ID for cnetplots
+mycats$oldid <- mycats$ID
+
+# #fix long pway names
+# pnames <- mycats$ID 
+# pnewnames <- c()
+# for(p in pnames){
+#   
+#   
+#   if(str_length(p) > 20){
+#     
+#     #try to find and replace underscore closest to halfway...
+#     halfway <- round(str_length(p)/2)
+#     underscorepos <- str_locate_all(p,'_')[[1]][,1]
+#     
+#     distances <- abs(halfway-underscorepos)
+#     
+#     which_und_is_closest <- which.min(distances)
+#     
+#     split <- str_split_fixed(p,'_',Inf)
+#     
+#     newp <- paste0(paste(split[1,1:which_und_is_closest], collapse = '_'),
+#                    '\n',
+#                    paste(split[1,(which_und_is_closest+1):ncol(split)], collapse = '_')
+#     )
+#     
+#     
+#     
+#   } else{newp <- p}
+#   
+#   pnewnames <- c(pnewnames, newp)
+#   
+# }
+# 
+# mycats$ID <- pnewnames
+
+
+### edit the tf target names
+
+mycats[mycats$ID == 'CTAWWWATA_RSRFC4_Q2', 'ID'] <- 'MEF2A targets - "CTAWWWATA_RSRFC4_Q2"'
+mycats[mycats$ID == 'E12_Q6', 'ID'] <- 'TCF3 targets - "E12_Q6"'
+mycats[mycats$ID == 'COREBINDINGFACTOR_Q6', 'ID'] <- 'CBFA2T2/3 targets - "COREBINDINGFACTOR_Q6"'
+mycats[mycats$ID == 'AP4_Q6_01', 'ID'] <- 'TFAP4 targets - "AP4_Q6_01"'
+
+#order pathways by pvalue
+mycats$ID <- factor(mycats$ID, levels = mycats[order(mycats$GeneRatio, decreasing = F),'ID'])
+
+
+
+
+
+
+pdf(paste0(outdir, '/finalplots_dotplot_STRAT-BY-CATEGORY_UPDATED.pdf'), width = 9, height = 5)
+
+ggplot(mycats, aes(GeneRatio, ID, size = Percent_of_DEGs, col = p.adjust))+
+  geom_point() + 
+  facet_wrap(~category, nrow = 3, scales='free_y')+
+  scale_color_gradient2(low="firebrick",high='gray', midpoint = 0.05)+
+  theme_linedraw()+
+  theme(axis.text.x = element_text(size = 6), axis.text.y = element_text(size = 15)) +
+  ylab('')
+
+
+
+
+dev.off()
+
+
+
+
+
+cnetplot(obj, showCategory = mycats[mycats$category == 'C3: TF Targets', 'oldid'], 
+         foldChange = namedfc,
+         shadowtext='category',
+         node_label = 'all',
+         cex_gene = 0.3, cex_label_gene = 0.5, cex_label_category = 0.8, 
+         max.overlaps = Inf, layout = 'kk')
+
+
+
+
+cnetplot(obj, showCategory = mycats[mycats$category == 'C6: Oncogenic', 'oldid'], 
+         foldChange = namedfc,
+         shadowtext='category',
+         node_label = 'all',
+         cex_gene = 0.3, cex_label_gene = 0.5, cex_label_category = 0.8, 
+         max.overlaps = Inf, layout = 'kk')
