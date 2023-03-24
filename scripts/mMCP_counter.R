@@ -161,7 +161,9 @@ gbox <- ggplot(ctres, aes(Condition, mMCP_estimate, fill = Condition))+
   facet_wrap(~ celltype_pvalue)+
   scale_fill_manual(values = rev(unique(md$Color)))+
   labs(caption = 'Statistics via T test')+
-  theme_linedraw()
+  theme_linedraw() +
+  theme(panel.grid = element_line(color = rgb(235, 235, 235, 195, maxColorValue = 255)))
+
 
 
 
@@ -181,11 +183,26 @@ gbar <- ggplot(ctres, aes(Sample, mMCP_estimate, fill = celltype))+
   geom_bar(position="stack", stat="identity")+  
   theme_linedraw()+
   theme(axis.text.x = element_text(angle = 45, vjust =1, hjust=1))+
-  scale_fill_manual(values = pal)
+  scale_fill_manual(values = pal)+
+  theme(panel.grid = element_line(color = rgb(235, 235, 235, 195, maxColorValue = 255)))
 
 
 
 
+
+pdf('~/Desktop/AACR_updatedeconvplots_gbox.pdf', height = 5, width = 6)
+gbox
+dev.off()
+
+pdf('~/Desktop/AACR_updatedeconvplots_gbar.pdf', height = 4, width = 3)
+gbar
+gbar + Seurat::NoLegend()
+dev.off()
+
+pdf('~/Desktop/AACR_updatedeconvplots_gbar_BIGLEGEND.pdf', height = 5, width = 5)
+gbar
+gbar + Seurat::NoLegend()
+dev.off()
 
 # save res
 ggsave('results/comparative-de/TKO-vs-DKO/4.downstream/mMCP_counter/barplot.jpg',
