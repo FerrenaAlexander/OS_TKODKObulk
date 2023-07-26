@@ -910,6 +910,12 @@ mycats <- data.frame(category = rep(c( 'MSIGDB Hallmarks', 'GO: Biological Proce
 )
 
 
+
+### try adding in ifn
+addcat <- data.frame(category = "MSIGDB Hallmarks",
+                     ID = "HALLMARK_UNFOLDED_PROTEIN_RESPONSE")
+mycats <- rbind(mycats, addcat)
+
 #get pvalue, padj, and %DEGs
 mycats <- cbind(mycats, pwayres[match(mycats$ID, pwayres$ID),c('Percent_of_DEGs', 'p.adjust', 'Count', 'GeneRatio')] )
 mycats$GeneRatio <- DOSE::parse_ratio(mycats$GeneRatio)
@@ -917,6 +923,8 @@ mycats$GeneRatio <- DOSE::parse_ratio(mycats$GeneRatio)
 #hallmark, then goBP, then c6
 mycats$category <- factor(mycats$category, levels = c( 'MSIGDB Hallmarks', 'GO: Biological Process', 'C6:Oncogenic') )
 
+#make sure order is right
+mycats <- mycats[order(mycats$category),]
 
 #fix long pway names
 pnames <- mycats$ID 
@@ -959,7 +967,7 @@ mycats$ID <- factor(mycats$ID, levels = mycats[order(mycats$GeneRatio, decreasin
 
 
 
-pdf(paste0(outdir, '/finalplots_dotplot_STRAT-BY-CATEGORY.pdf'), width = 5, height = 5)
+pdf(paste0(outdir, '/finalplots_dotplot_STRAT-BY-CATEGORY_withUPR.pdf'), width = 5, height = 5)
 
 ggplot(mycats, aes(GeneRatio, ID, size = Percent_of_DEGs, col = p.adjust))+
   geom_point() + 

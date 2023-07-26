@@ -908,6 +908,13 @@ mycats <- data.frame(category = rep(c( 'MSIGDB Hallmarks', 'GO: Biological Proce
                      )
 
 
+### try adding in ifn
+addcat <- data.frame(category = "MSIGDB Hallmarks",
+                     ID = "HALLMARK_INTERFERON_GAMMA_RESPONSE")
+mycats <- rbind(mycats, addcat)
+
+
+
 #get pvalue, padj, and %DEGs
 mycats <- cbind(mycats, pwayres[match(mycats$ID, pwayres$ID),c('Percent_of_DEGs', 'p.adjust', 'Count', 'GeneRatio')] )
 mycats$GeneRatio <- DOSE::parse_ratio(mycats$GeneRatio)
@@ -915,6 +922,8 @@ mycats$GeneRatio <- DOSE::parse_ratio(mycats$GeneRatio)
 #hallmark, then goBP, then c6
 mycats$category <- factor(mycats$category, levels = c( 'MSIGDB Hallmarks', 'GO: Biological Process', 'C6:Oncogenic') )
 
+#make sure order is right
+mycats <- mycats[order(mycats$category),]
 
 #fix long pway names
 pnames <- mycats$ID 
@@ -957,7 +966,7 @@ mycats$ID <- factor(mycats$ID, levels = mycats[order(mycats$GeneRatio, decreasin
   
 
 
-pdf(paste0(outdir, '/finalplots_dotplot_STRAT-BY-CATEGORY_UPDATED.pdf'), width = 5, height = 5)
+pdf(paste0(outdir, '/finalplots_dotplot_STRAT-BY-CATEGORY_UPDATED_withIFN.pdf'), width = 5, height = 5)
 
 ggplot(mycats, aes(GeneRatio, ID, size = Percent_of_DEGs, col = p.adjust))+
   geom_point() + 
@@ -986,6 +995,17 @@ mycats <- data.frame(category = c(rep( 'MSIGDB Hallmarks', 3),
                             'CTAWWWATA_RSRFC4_Q2', 'E12_Q6', 'COREBINDINGFACTOR_Q6', 'AP4_Q6_01',
                             "SNF5_DN.V1_UP", "MEK_UP.V1_UP" , "KRAS.LUNG_UP.V1_UP" )
 )
+
+
+#pick categories
+mycats <- data.frame(category = c(rep( 'MSIGDB Hallmarks', 4),
+                                  rep('C3: TF Targets',4),
+                                  rep('C6: Oncogenic', 3)),
+                     ID = c('HALLMARK_MYOGENESIS', 'HALLMARK_ALLOGRAFT_REJECTION', 'HALLMARK_KRAS_SIGNALING_UP',
+                            'CTAWWWATA_RSRFC4_Q2', 'E12_Q6', 'COREBINDINGFACTOR_Q6', 'AP4_Q6_01',
+                            "SNF5_DN.V1_UP", "MEK_UP.V1_UP" , "KRAS.LUNG_UP.V1_UP" )
+)
+
 
 
 #get pvalue, padj, and %DEGs

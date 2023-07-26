@@ -13,7 +13,7 @@ set.seed(2021)
 
 #read in
 gem <- readRDS('data/gem.rds')
-gencode <- read.table('data/geneInfo.tab', sep = '\t', skip = 1, header = F)
+gencode <- read.table('data/gencode.vM23.ids_names_types.csv', sep = '\t', skip = 1, header = F)
 colnames(gencode) <- c('gene_id', 'gene_name', 'gene_type')
 
 md <- readxl::read_excel('data/metadata.xlsx')
@@ -143,7 +143,7 @@ rm(gemnorm)
 
 #create dds obj
 dds <- DESeqDataSetFromMatrix(gem, md,
-                              design = ~ Treatment)
+                              design = ~ Genotype)
 
 
 #run DESeq2 
@@ -223,11 +223,11 @@ pdf <- cbind(pdf, md)
 data.frame(levels(pdf$condition), levels(pdf$color))
 
 
-pca_recoded <- ggplot(pdf, aes(PC1, PC2, col = Treatment, shape = CellLine))+
+pca_recoded <- ggplot(pdf, aes(PC1, PC2, col = Condition))+
   geom_point(size = 3)+
-  ggrepel::geom_text_repel(aes(label = name), box.padding = 0.4)+
+  ggrepel::geom_text_repel(aes(label = Code), box.padding = 0.4)+
   #scale_color_brewer(palette = 'Set2', direction = -1)+
-  scale_color_manual(values = pdf$TreatmentColor)+
+  scale_color_manual(values = unique(pdf$Color))+
   theme_light()
 
 pca_recoded
